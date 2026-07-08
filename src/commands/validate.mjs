@@ -66,7 +66,7 @@ export function validate(vaultRoot) {
     // ── Wiki-specific checks (resources/wiki/ entries) ──
     const isWiki = note.type === 'resource/wiki' ||
                    (note.type && note.type.startsWith('resource/wiki/')) ||
-                   (note.dir && note.dir.startsWith('resources/wiki/'));
+                   (note.dir && (note.dir === 'resources/wiki' || note.dir.startsWith('resources/wiki/')));
     if (isWiki) {
       // 1. Chinese characters in filename (should use English slug)
       if (/[\u4e00-\u9fff]/.test(note.file)) {
@@ -110,7 +110,7 @@ export function validate(vaultRoot) {
     }
 
     // ── Non-wiki notes mistakenly in wiki directory ──
-    if (!isWiki && note.dir && note.dir.startsWith('resources/wiki/')) {
+    if (!isWiki && note.dir && (note.dir === 'resources/wiki' || note.dir.startsWith('resources/wiki/'))) {
       noteIssues.push('in wiki directory but type is not resource/wiki/*');
     }
 

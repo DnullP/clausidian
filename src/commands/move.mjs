@@ -39,9 +39,12 @@ export function move(vaultRoot, noteName, newType) {
     throw new Error(`A note named "${note.file}" already exists in ${newDir}/`);
   }
 
-  // Update type in frontmatter
+  // Update type in frontmatter — only if base type actually changes
+  const oldBaseType = (note.type || '').includes('/') ? note.type.split('/')[0] : note.type;
   let content = vault.read(note.dir, `${note.file}.md`);
-  content = content.replace(/^(type:)\s*.*$/m, `$1 ${newType}`);
+  if (baseType !== oldBaseType) {
+    content = content.replace(/^(type:)\s*.*$/m, `$1 ${newType}`);
+  }
   content = content.replace(/^(updated:)\s*.*$/m, `$1 "${todayStr()}"`);
   vault.write(note.dir, `${note.file}.md`, content);
 
