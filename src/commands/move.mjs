@@ -1,7 +1,7 @@
 /**
  * move — move a note to a different type/directory
  */
-import { renameSync } from 'fs';
+import { renameSync, mkdirSync } from 'fs';
 import { Vault } from '../vault.mjs';
 import { IndexManager } from '../index-manager.mjs';
 import { todayStr } from '../dates.mjs';
@@ -14,9 +14,11 @@ export function move(vaultRoot, noteName, newType) {
     throw new Error('Usage: clausidian move <note-name> <new-type>');
   }
 
-  const validTypes = ['area', 'project', 'resource', 'idea'];
-  if (!validTypes.includes(newType)) {
-    throw new Error(`Invalid type: ${newType}. Must be one of: ${validTypes.join(', ')}`);
+  // Extract base type for validation (e.g., "resource/wiki/kubernetes" → "resource")
+  const baseType = newType.includes('/') ? newType.split('/')[0] : newType;
+  const validBaseTypes = ['area', 'project', 'resource', 'idea'];
+  if (!validBaseTypes.includes(baseType)) {
+    throw new Error(`Invalid type: ${newType}. Base type must be one of: ${validBaseTypes.join(', ')}`);
   }
 
   const note = vault.findNote(noteName);
@@ -29,6 +31,9 @@ export function move(vaultRoot, noteName, newType) {
     console.log(`Note is already in ${newDir}/`);
     return { status: 'unchanged', file: `${note.dir}/${note.file}.md` };
   }
+
+  // Ensure target directory exists
+  mkdirSync(vault.path(newDir), { recursive: true });
 
   if (vault.exists(newDir, `${note.file}.md`)) {
     throw new Error(`A note named "${note.file}" already exists in ${newDir}/`);

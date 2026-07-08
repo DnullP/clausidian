@@ -16,14 +16,16 @@ export default [
         mcpSchema: {
           type: { type: 'string' }, tag: { type: 'string' }, status: { type: 'string' },
           set_status: { type: 'string' }, set_summary: { type: 'string' },
+          set_tags: { type: 'string', description: 'Replace all tags (comma-separated)' },
+          set_aliases: { type: 'string', description: 'Set aliases' },
+          set_related: { type: 'string', description: 'Set related wikilinks' },
+          set_maturity: { type: 'string', description: 'Set maturity level' },
+          set_source: { type: 'string', description: 'Set source URL' },
+          set_created: { type: 'string', description: 'Set creation date' },
         },
         async run(root, flags) {
           const { batchUpdate } = await import('../commands/batch.mjs');
-          return batchUpdate(root, {
-            type: flags.type, tag: flags.tag, status: flags.status,
-            setStatus: flags['set-status'] || flags.set_status,
-            setSummary: flags['set-summary'] || flags.set_summary,
-          });
+          return batchUpdate(root, flags);
         },
       },
       tag: {
@@ -38,6 +40,21 @@ export default [
           return batchTag(root, {
             type: flags.type, tag: flags.tag, status: flags.status,
             add: flags.add, remove: flags.remove,
+          });
+        },
+      },
+      delete: {
+        mcpName: 'batch_delete',
+        description: 'Batch delete matching notes',
+        mcpSchema: {
+          type: { type: 'string' }, tag: { type: 'string' }, status: { type: 'string' },
+          dry_run: { type: 'boolean', description: 'Preview only, do not delete' },
+        },
+        async run(root, flags) {
+          const { batchDelete } = await import('../commands/batch.mjs');
+          return batchDelete(root, {
+            type: flags.type, tag: flags.tag, status: flags.status,
+            dryRun: flags['dry-run'] || flags.dry_run,
           });
         },
       },

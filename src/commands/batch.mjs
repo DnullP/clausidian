@@ -10,6 +10,7 @@
 import { Vault } from '../vault.mjs';
 import { IndexManager } from '../index-manager.mjs';
 import { todayStr } from '../dates.mjs';
+import { unlinkSync } from 'fs';
 
 function filterNotes(vault, { type, tag, status }) {
   const notes = vault.scanNotes();
@@ -21,7 +22,7 @@ function filterNotes(vault, { type, tag, status }) {
   });
 }
 
-export function batchUpdate(vaultRoot, { type, tag, status, setStatus, setSummary }) {
+export function batchUpdate(vaultRoot, { type, tag, status, setStatus, setSummary, ...rest }) {
   const vault = new Vault(vaultRoot);
   const idx = new IndexManager(vault);
   const notes = filterNotes(vault, { type, tag, status });
@@ -34,6 +35,22 @@ export function batchUpdate(vaultRoot, { type, tag, status, setStatus, setSummar
   const updates = { updated: todayStr() };
   if (setStatus) updates.status = setStatus;
   if (setSummary) updates.summary = setSummary;
+
+  // Pass through all set_* fields (set_aliases, set_maturity, set_related, etc.)
+  for (const [key, val] of Object.entries(rest)) {
+    if (!val) continue;
+    const field = key.startsWith('set_') ? key.slice(4) : key;
+    // Parse string values that look like JSON arrays/objects
+    if (typeof val === 'string') {
+      if ((val.startsWith('[') || val.startsWith('{')) && (val.endsWith(']') || val.endsWith('}'))) {
+        try { updates[field] = JSON.parse(val); } catch { updates[field] = val; }
+      } else {
+        updates[field] = val;
+      }
+    } else {
+      updates[field] = val;
+    }
+  }
 
   let count = 0;
   for (const note of notes) {
@@ -71,6 +88,37 @@ export function batchTag(vaultRoot, { type, tag, status, add, remove }) {
   const action = add ? `added "${add}"` : `removed "${remove}"`;
   console.log(`${action} — ${count} note(s) changed`);
   return { updated: count, action };
+}
+
+export function batchDelete(vaultRoot, { type, tag, status, dryRun }) {
+  const vault = new Vault(vaultRoot);
+  const idx = new IndexManager(vault);
+  const notes = filterNotes(vault, { type, tag, status });
+
+  if (!notes.length) {
+    console.log('No matching notes found.');
+    return { deleted: 0 };
+  }
+
+  if (dryRun) {
+    console.log(`[DRY RUN] Would delete ${notes.length} note(s):`);
+    for (const note of notes) {
+      console.log(`  ${note.dir}/${note.file}.md`);
+    }
+    return { deleted: 0, dryRun: true, wouldDelete: notes.length, files: notes.map(n => `${n.dir}/${n.file}.md`) };
+  }
+
+  const deleted = [];
+  for (const note of notes) {
+    const filePath = vault.path(note.dir, `${note.file}.md`);
+    unlinkSync(filePath);
+    deleted.push(`${note.dir}/${note.file}.md`);
+  }
+
+  vault.invalidateCache();
+  idx.sync();
+  console.log(`Deleted ${deleted.length} note(s)`);
+  return { deleted: deleted.length, files: deleted };
 }
 
 export function batchArchive(vaultRoot, { type, tag, status }) {

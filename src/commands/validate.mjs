@@ -63,6 +63,57 @@ export function validate(vaultRoot) {
       }
     }
 
+    // ── Wiki-specific checks (resources/wiki/ entries) ──
+    const isWiki = note.type === 'resource/wiki' ||
+                   (note.type && note.type.startsWith('resource/wiki/')) ||
+                   (note.dir && note.dir.startsWith('resources/wiki/'));
+    if (isWiki) {
+      // 1. Chinese characters in filename (should use English slug)
+      if (/[\u4e00-\u9fff]/.test(note.file)) {
+        noteIssues.push('filename contains Chinese characters (use English slug, Chinese title in aliases)');
+      }
+
+      // 2. aliases must be present and non-empty
+      if (!fm.aliases || (Array.isArray(fm.aliases) && fm.aliases.length === 0)) {
+        noteIssues.push('missing or empty aliases (Chinese title goes here)');
+      }
+
+      // 3. maturity is required for wiki entries
+      const validMaturities = ['seedling', 'budding', 'evergreen', 'evergreen+'];
+      if (!fm.maturity) {
+        noteIssues.push('missing maturity (seedling/budding/evergreen/evergreen+)');
+      } else if (fm.maturity && !validMaturities.includes(fm.maturity)) {
+        noteIssues.push(`invalid maturity: ${fm.maturity}`);
+      }
+
+      // 4. <br> HTML tags in body (should use markdown line breaks)
+      const body = content.replace(/^---[\s\S]*?---/, ''); // Strip frontmatter
+      if (/<br\s*\/?>/i.test(body)) {
+        noteIssues.push('contains <br> HTML tag (use markdown blank lines instead)');
+      }
+
+      // 5. related field format — must be YAML list, not wikilinks
+      if (fm.related !== undefined && fm.related !== null) {
+        if (typeof fm.related === 'string') {
+          noteIssues.push('related should be a YAML list [...], not a single string');
+        } else if (Array.isArray(fm.related)) {
+          for (const rel of fm.related) {
+            if (typeof rel === 'string' && rel.startsWith('[[') && rel.endsWith(']]')) {
+              noteIssues.push('related contains wikilinks (remove [[ ]], use bare filenames)');
+              break;
+            }
+          }
+        }
+      } else {
+        noteIssues.push('missing related field');
+      }
+    }
+
+    // ── Non-wiki notes mistakenly in wiki directory ──
+    if (!isWiki && note.dir && note.dir.startsWith('resources/wiki/')) {
+      noteIssues.push('in wiki directory but type is not resource/wiki/*');
+    }
+
     if (noteIssues.length) {
       issues.push({ file: note.file, dir: note.dir, type: note.type, issues: noteIssues });
     }

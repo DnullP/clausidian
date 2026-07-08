@@ -14,13 +14,16 @@ export default [
       status: { type: 'string', description: 'New status' },
       tags: { type: 'string', description: 'Comma-separated tags' },
       summary: { type: 'string', description: 'New summary' },
+      aliases: { type: 'string', description: 'Aliases (comma-separated or JSON array)' },
+      related: { type: 'string', description: 'Related wikilinks (comma-separated or JSON array)' },
+      maturity: { type: 'string', description: 'Maturity level' },
+      created: { type: 'string', description: 'Creation date (YYYY-MM-DD)' },
+      source: { type: 'string', description: 'Source URL or reference' },
     },
     mcpRequired: ['note'],
     async run(root, flags, pos) {
       const { update } = await import('../commands/update.mjs');
-      return update(root, flags.note || pos[0], {
-        status: flags.status, tags: flags.tags, tag: flags.tag, summary: flags.summary,
-      });
+      return update(root, flags.note || pos[0], flags);
     },
   },,
   {
