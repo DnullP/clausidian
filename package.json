@@ -1,0 +1,38 @@
+{
+  "name": "clausidian",
+  "version": "3.7.0",
+  "description": "Claude Code's Obsidian integration — AI agent toolkit for vault management, journal, notes, search, index sync, and more",
+  "type": "module",
+  "bin": {
+    "clausidian": "bin/cli.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "scaffold/",
+    "skill/"
+  ],
+  "keywords": [
+    "claude-code",
+    "obsidian",
+    "ai-agent",
+    "mcp",
+    "knowledge-base",
+    "cli",
+    "automation",
+    "markdown",
+    "journal"
+  ],
+  "author": "redredchen01",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DnullP/clausidian.git"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
