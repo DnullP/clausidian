@@ -4,7 +4,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, cpSync } from 'fs';
 import { resolve, join } from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
 
 const SCAFFOLD_DIR = resolve(fileURLToPath(import.meta.url), '..', '..', '..', 'scaffold');
 
@@ -142,22 +141,15 @@ updated: ${new Date().toISOString().slice(0, 10)}
   if (!existsSync(claudeDir)) mkdirSync(claudeDir, { recursive: true });
   const settingsPath = join(claudeDir, 'settings.json');
   if (!existsSync(settingsPath)) {
-    let clausidianBin = 'clausidian';
-    try { clausidianBin = execSync('zsh -ic "which clausidian" 2>/dev/null', { encoding: 'utf8' }).trim(); } catch {}
-    if (!clausidianBin || clausidianBin === 'clausidian') {
-      try { clausidianBin = execSync('which clausidian', { encoding: 'utf8' }).trim(); } catch {}
-    }
+    // Use bare command names — rely on PATH resolution (portable across setups: npm global, mise, nvm, volta, etc.)
     const settings = {
       permissions: {
         allow: [
           "Skill(update-config)",
           "Skill(update-config:*)",
-          `Bash(OA_VAULT="${root}" ${clausidianBin} hook session-start)`,
-          `Bash(OA_VAULT="${root}" ${clausidianBin} validate)`,
-          `Bash(OA_VAULT="${root}" ${clausidianBin} hook session-stop)`,
-          `Bash(python3 ${join(root, '.claude/scripts/enforce-clausidian.py')})`,
+          "Bash(clausidian:*)",
+          "Bash(python3 .claude/scripts/*)",
           "Bash(python3:*)",
-          "Read(//Users/**/.claude/**)",
         ],
       },
       hooks: {
@@ -166,12 +158,12 @@ updated: ${new Date().toISOString().slice(0, 10)}
             hooks: [
               {
                 type: "command",
-                command: `OA_VAULT="${root}" ${clausidianBin} hook session-start`,
+                command: `OA_VAULT="${root}" clausidian hook session-start`,
                 statusMessage: "Loading today's vault context...",
               },
               {
                 type: "command",
-                command: `OA_VAULT="${root}" ${clausidianBin} validate`,
+                command: `OA_VAULT="${root}" clausidian validate`,
                 statusMessage: "Checking vault health and wiki compliance...",
               },
             ],
@@ -183,7 +175,7 @@ updated: ${new Date().toISOString().slice(0, 10)}
             hooks: [
               {
                 type: "command",
-                command: `python3 ${join(root, '.claude/scripts/enforce-clausidian.py')}`,
+                command: "python3 .claude/scripts/enforce-clausidian.py",
                 statusMessage: "Routing through clausidian MCP...",
               },
             ],
@@ -194,7 +186,7 @@ updated: ${new Date().toISOString().slice(0, 10)}
             hooks: [
               {
                 type: "command",
-                command: `OA_VAULT="${root}" ${clausidianBin} hook session-stop`,
+                command: `OA_VAULT="${root}" clausidian hook session-stop`,
                 statusMessage: "Capturing learnings & decisions...",
               },
             ],

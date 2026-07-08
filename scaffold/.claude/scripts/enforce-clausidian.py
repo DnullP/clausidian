@@ -14,7 +14,7 @@ Denies:
 
 import sys, json, os, re
 
-VAULT = os.environ.get("OA_VAULT", os.path.expanduser("~/Documents/obsidian/学习笔记"))
+VAULT = os.environ.get("OA_VAULT", os.getcwd())
 
 # Content directories managed by clausidian
 CONTENT_DIRS = ("projects/", "areas/", "resources/", "journal/", "ideas/")
