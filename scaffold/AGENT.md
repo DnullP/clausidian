@@ -62,6 +62,8 @@ clausidian random 3                 # 偶遇式发现
 ```bash
 # 编辑笔记
 clausidian patch "note" --heading "Discussion" --append "新增内容"
+clausidian patch "note" --heading "See Also" --append "[[related-note]]"  # 自动创建缺失标题
+clausidian patch "note" --heading "Discussion" --after_line "关键洞见" --append "补充说明"  # 段落级精确定位
 clausidian update "note" --status active --summary "更新摘要"
 clausidian archive "old-note"
 clausidian delete "obsolete-note"

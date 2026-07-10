@@ -36,7 +36,7 @@ MCP_GUIDE = """Direct Write/Edit on vault notes is blocked. Use clausidian MCP t
 | Create a note | `mcp__clausidian__note` (title, type, tags, summary) |
 | Read a note | `mcp__clausidian__read` (note, section?) |
 | Edit any frontmatter | `mcp__clausidian__update` (note, aliases?, related?, maturity?, created?, source?, status?, tags?, summary?) |
-| Edit section content | `mcp__clausidian__patch` (note, heading, append?/prepend?/replace?) |
+| Edit section content | `mcp__clausidian__patch` (note, heading, append?/prepend?/replace?/match_text?, after_line?/before_line?, delete_section?, auto-creates missing headings) |
 | Quick capture idea | `mcp__clausidian__capture` (idea) |
 | Create journal | `mcp__clausidian__journal` (date?) |
 | Rename note | `mcp__clausidian__rename` (note, new_title) |

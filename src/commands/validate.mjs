@@ -107,6 +107,18 @@ export function validate(vaultRoot) {
       } else {
         noteIssues.push('missing related field');
       }
+
+      // 6. wikilinks should be embedded in body, not only in Connections section
+      const connHeader = body.match(/\n## (?:Connections|See Also)/);
+      if (connHeader) {
+        const bodyBefore = body.substring(0, connHeader.index);
+        const connSection = body.substring(connHeader.index);
+        const bodyLinks = (bodyBefore.match(/\[\[([^\]]+)\]\]/g) || []);
+        const connLinks = (connSection.match(/\[\[([^\]]+)\]\]/g) || []);
+        if (bodyLinks.length === 0 && connLinks.length > 0) {
+          noteIssues.push('wikilinks only in Connections section, embed in body at first mention (链接应嵌入正文)');
+        }
+      }
     }
 
     // ── Non-wiki notes mistakenly in wiki directory ──
@@ -116,6 +128,68 @@ export function validate(vaultRoot) {
 
     if (noteIssues.length) {
       issues.push({ file: note.file, dir: note.dir, type: note.type, issues: noteIssues });
+    }
+  }
+
+  // ── Orphan wiki entry check (zero inbound references) ──
+  // Build set of all linked targets from non-journal notes
+  const linkedTargets = new Set();
+  const wikiNotes = [];
+  const allNoteFiles = new Set(notes.map(n => n.file));
+  for (const note of notes) {
+    if (note.type !== 'journal') {
+      for (const rel of note.related) linkedTargets.add(rel);
+    }
+    const isWikiNote = note.type === 'resource/wiki' ||
+                       (note.type && note.type.startsWith('resource/wiki/')) ||
+                       (note.dir && (note.dir === 'resources/wiki' || note.dir.startsWith('resources/wiki/')));
+    if (isWikiNote) wikiNotes.push(note);
+  }
+  // Also scan body wikilinks from non-journal notes
+  // Simultaneously collect broken wikilinks per source note
+  const brokenLinks = {};
+  for (const note of notes) {
+    if (note.type === 'journal') continue;
+    const content = vault.read(note.dir, `${note.file}.md`);
+    if (!content) continue;
+    const body = content.replace(/^---[\s\S]*?---/, '');
+    const wikilinks = body.match(/\[\[([^\]]+)\]\]/g) || [];
+    for (const wl of wikilinks) {
+      const target = wl.slice(2, -2);
+      // Skip date-like patterns (YYYY-MM-DD)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(target)) continue;
+      linkedTargets.add(target);
+      // Check for broken wikilink: target doesn't exist in vault
+      if (!allNoteFiles.has(target)) {
+        if (!brokenLinks[note.file]) brokenLinks[note.file] = [];
+        if (!brokenLinks[note.file].includes(target)) brokenLinks[note.file].push(target);
+      }
+    }
+  }
+  // Add orphan warnings to issue list
+  const existingIssueFiles = new Set(issues.map(i => i.file));
+  for (const wikiNote of wikiNotes) {
+    if (!linkedTargets.has(wikiNote.file) && !linkedTargets.has(wikiNote.title)) {
+      const orphanMsg = 'orphan wiki entry, no inbound links from non-journal notes (孤岛词条)';
+      if (existingIssueFiles.has(wikiNote.file)) {
+        const entry = issues.find(i => i.file === wikiNote.file);
+        entry.issues.push(orphanMsg);
+      } else {
+        issues.push({ file: wikiNote.file, dir: wikiNote.dir, type: wikiNote.type, issues: [orphanMsg] });
+      }
+    }
+  }
+
+  // ── Broken wikilink check (target note doesn't exist) ──
+  for (const [sourceFile, brokenTargets] of Object.entries(brokenLinks)) {
+    const targetList = brokenTargets.join(', ');
+    const msg = `broken wikilink(s): ${targetList} — target note not found (目标词条不存在)`;
+    if (existingIssueFiles.has(sourceFile)) {
+      const entry = issues.find(i => i.file === sourceFile);
+      entry.issues.push(msg);
+    } else {
+      const srcNote = notes.find(n => n.file === sourceFile);
+      issues.push({ file: sourceFile, dir: srcNote?.dir || '', type: srcNote?.type || '', issues: [msg] });
     }
   }
 
