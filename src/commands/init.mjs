@@ -149,7 +149,6 @@ updated: ${new Date().toISOString().slice(0, 10)}
           "Skill(update-config:*)",
           "Bash(clausidian:*)",
           "Bash(python3 .claude/scripts/*)",
-          "Bash(python3:*)",
         ],
       },
       hooks: {
